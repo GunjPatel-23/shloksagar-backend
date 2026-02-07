@@ -22,11 +22,18 @@ const limiter = rateLimit({
     // Use a key generator that falls back to X-Forwarded-For when present
     keyGenerator: (req) => {
         // Prefer X-Forwarded-For first value (if behind a proxy)
-        const xff = (req.headers['x-forwarded-for'] || req.headers['forwarded'] || '') as string;
-        if (xff && typeof xff === 'string') {
-            return xff.split(',')[0].trim();
+        const xffHeader = req.headers['x-forwarded-for'] || req.headers['forwarded'];
+        let xff = '';
+        if (Array.isArray(xffHeader)) xff = String(xffHeader[0]);
+        else if (typeof xffHeader === 'string') xff = xffHeader;
+
+        if (xff) {
+            return String(xff.split(',')[0].trim());
         }
-        return req.ip;
+
+        // Fallback to req.ip or connection remote address
+        const ip = (req.ip as string) || (req.connection && (req.connection as any).remoteAddress) || 'unknown';
+        return String(ip);
     },
     message: 'Too many requests from this IP, please try again after 15 minutes'
 });
