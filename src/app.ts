@@ -278,6 +278,28 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', time: new Date().toISOString() });
 });
 
+// Debug probe for deployed environment diagnostics (safe - does not return secret values)
+app.get('/__probe', (req, res) => {
+    res.json({
+        success: true,
+        message: 'probe',
+        method: req.method,
+        url: req.originalUrl,
+        path: req.path,
+        headers: {
+            host: req.headers.host,
+            origin: req.headers.origin || null,
+            referer: req.headers.referer || null
+        },
+        env: {
+            SUPABASE_URL: !!process.env.SUPABASE_URL,
+            SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
+            SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            NODE_ENV: process.env.NODE_ENV || null
+        }
+    });
+});
+
 // 404 Handler
 app.use((req, res) => {
     res.status(404).json({ success: false, message: 'Endpoint not found' });
