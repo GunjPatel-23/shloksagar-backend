@@ -1,4 +1,4 @@
-import { supabase } from './supabase.service';
+import { supabaseAdmin } from '../config/supabaseAdmin';
 // @ts-ignore - TypeScript can't find types but runtime works fine
 import * as brevo from '@getbrevo/brevo';
 
@@ -16,7 +16,7 @@ interface ContactMessage {
 
 export async function createContactMessage(data: ContactMessage) {
     // Save to database
-    const { data: message, error } = await supabase
+    const { data: message, error } = await supabaseAdmin
         .from('contact_messages')
         .insert({
             name: data.name,
@@ -133,7 +133,7 @@ async function sendAdminNotification(data: ContactMessage) {
 }
 
 export async function getAllContactMessages() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false });
@@ -164,7 +164,7 @@ export async function updateContactMessageStatus(
         }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('contact_messages')
         .update(updateData)
         .eq('id', id)

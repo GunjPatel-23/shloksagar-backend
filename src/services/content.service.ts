@@ -1,4 +1,5 @@
-import { supabase } from './supabase.service';
+import { supabasePublic } from '../config/supabasePublic';
+import { supabaseAdmin } from '../config/supabaseAdmin';
 import slugify from 'slugify';
 
 // Content types
@@ -180,7 +181,7 @@ function cleanDataForTable(data: any, table: string): any {
 // ═══════════════════════════════════════════════════════════════════
 
 export async function getAllCategories(includeHidden = false) {
-    let query = supabase
+    let query = supabasePublic
         .from('categories')
         .select('*');
 
@@ -196,7 +197,7 @@ export async function getAllCategories(includeHidden = false) {
     // Count devotional content items for each category
     const categoriesWithCount = await Promise.all(
         (categories || []).map(async (category) => {
-            const { count, error: countError } = await supabase
+            const { count, error: countError } = await supabasePublic
                 .from('devotional_content')
                 .select('id', { count: 'exact', head: true })
                 .eq('category_id', category.id)
@@ -213,7 +214,7 @@ export async function getAllCategories(includeHidden = false) {
 }
 
 export async function getCategoryBySlug(slug: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('categories')
         .select('*')
         .eq('slug', slug)
@@ -242,7 +243,7 @@ export async function createCategory(category: any) {
 
     console.log('📤 Inserting category data:', categoryData);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('categories')
         .insert(categoryData)
         .select()
@@ -261,7 +262,7 @@ export async function updateCategory(id: string, updates: any) {
     // Clean and map fields
     const updateData = cleanDataForTable(updates, 'categories');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('categories')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -281,7 +282,7 @@ export async function getAllDevotionalContent(
     categoryId?: string,
     status: 'draft' | 'published' = 'published'
 ) {
-    let query = supabase
+    let query = supabasePublic
         .from('devotional_content')
         .select('*, category:categories(*)');
 
@@ -302,7 +303,7 @@ export async function getAllDevotionalContent(
 }
 
 export async function getDevotionalContentBySlug(slug: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('devotional_content')
         .select('*, category:categories(*)')
         .eq('slug', slug)
@@ -328,7 +329,7 @@ export async function createDevotionalContent(content: DevotionalContent) {
     if (contentData.slug) {
         const baseSlug = contentData.slug;
         // Fetch existing slugs that start with baseSlug
-        const { data: existing, error: fetchErr } = await supabase
+        const { data: existing, error: fetchErr } = await supabaseAdmin
             .from('devotional_content')
             .select('slug')
             .ilike('slug', `${baseSlug}%`);
@@ -356,7 +357,7 @@ export async function createDevotionalContent(content: DevotionalContent) {
 
     console.log('📤 Inserting devotional content:', contentData);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('devotional_content')
         .insert(contentData)
         .select()
@@ -379,7 +380,7 @@ export async function updateDevotionalContent(id: string, updates: Partial<Devot
     // Clean and map fields
     const updateData = cleanDataForTable(updates, 'devotional_content');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('devotional_content')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -391,7 +392,7 @@ export async function updateDevotionalContent(id: string, updates: Partial<Devot
 }
 
 export async function deleteDevotionalContent(id: string) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('devotional_content')
         .delete()
         .eq('id', id);
@@ -404,7 +405,7 @@ export async function deleteDevotionalContent(id: string) {
 // ═══════════════════════════════════════════════════════════════════
 
 export async function getAllGitaShlok(chapter?: number) {
-    let query = supabase
+    let query = supabasePublic
         .from('gita_shlok')
         .select('*')
         .order('chapter', { ascending: true })
@@ -421,7 +422,7 @@ export async function getAllGitaShlok(chapter?: number) {
 }
 
 export async function getGitaShlokBySlug(slug: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('gita_shlok')
         .select('*')
         .eq('slug', slug)
@@ -432,7 +433,7 @@ export async function getGitaShlokBySlug(slug: string) {
 }
 
 export async function getGitaShlokByChapterVerse(chapter: number, verse: number) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('gita_shlok')
         .select('*')
         .eq('chapter', chapter)
@@ -450,7 +451,7 @@ export async function createGitaShlok(shlok: any) {
         shlokData.slug = `chapter-${shlokData.chapter}-verse-${shlokData.verse}`;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('gita_shlok')
         .insert(shlokData)
         .select()
@@ -463,7 +464,7 @@ export async function createGitaShlok(shlok: any) {
 export async function updateGitaShlok(id: string, updates: any) {
     const updateData = cleanDataForTable(updates, 'gita_shlok');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('gita_shlok')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -480,7 +481,7 @@ export async function updateGitaShlok(id: string, updates: any) {
 
 export async function getTodayQuote() {
     const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('quotes')
         .select('*')
         .eq('date', today)
@@ -491,7 +492,7 @@ export async function getTodayQuote() {
 }
 
 export async function getAllQuotes(limit = 30) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('quotes')
         .select('*')
         .order('date', { ascending: false })
@@ -504,7 +505,7 @@ export async function getAllQuotes(limit = 30) {
 export async function createQuote(quote: any) {
     const quoteData = cleanDataForTable(quote, 'quotes');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('quotes')
         .insert(quoteData)
         .select()
@@ -517,7 +518,7 @@ export async function createQuote(quote: any) {
 export async function updateQuote(id: string, updates: any) {
     const updateData = cleanDataForTable(updates, 'quotes');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('quotes')
         .update(updateData)
         .eq('id', id)
@@ -529,7 +530,7 @@ export async function updateQuote(id: string, updates: any) {
 }
 
 export async function deleteQuote(id: string) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('quotes')
         .delete()
         .eq('id', id);
@@ -543,7 +544,7 @@ export async function deleteQuote(id: string) {
 
 export async function getTodayGitaSandesh() {
     const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('gita_sandesh')
         .select('*')
         .eq('date', today)
@@ -554,7 +555,7 @@ export async function getTodayGitaSandesh() {
 }
 
 export async function getAllGitaSandesh(limit = 30) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('gita_sandesh')
         .select('*')
         .order('date', { ascending: false })
@@ -567,7 +568,7 @@ export async function getAllGitaSandesh(limit = 30) {
 export async function createGitaSandesh(sandesh: any) {
     const sandeshData = cleanDataForTable(sandesh, 'gita_sandesh');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('gita_sandesh')
         .insert(sandeshData)
         .select()
@@ -580,7 +581,7 @@ export async function createGitaSandesh(sandesh: any) {
 export async function updateGitaSandesh(id: string, updates: any) {
     const updateData = cleanDataForTable(updates, 'gita_sandesh');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('gita_sandesh')
         .update(updateData)
         .eq('id', id)
@@ -596,7 +597,7 @@ export async function updateGitaSandesh(id: string, updates: any) {
 // ═══════════════════════════════════════════════════════════════════
 
 export async function getAllWallpapers(tags?: string[]) {
-    let query = supabase
+    let query = supabasePublic
         .from('wallpapers')
         .select('*')
         .order('created_at', { ascending: false });
@@ -612,7 +613,7 @@ export async function getAllWallpapers(tags?: string[]) {
 }
 
 export async function getWallpaperById(id: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('wallpapers')
         .select('*')
         .eq('id', id)
@@ -625,7 +626,7 @@ export async function getWallpaperById(id: string) {
 export async function createWallpaper(wallpaper: any) {
     const wallpaperData = cleanDataForTable(wallpaper, 'wallpapers');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('wallpapers')
         .insert(wallpaperData)
         .select()
@@ -636,7 +637,7 @@ export async function createWallpaper(wallpaper: any) {
 }
 
 export async function deleteWallpaper(id: string) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('wallpapers')
         .delete()
         .eq('id', id);
@@ -647,7 +648,7 @@ export async function deleteWallpaper(id: string) {
 export async function updateWallpaper(id: string, updates: any) {
     const updateData = cleanDataForTable(updates, 'wallpapers');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('wallpapers')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -663,7 +664,7 @@ export async function updateWallpaper(id: string, updates: any) {
 // ═══════════════════════════════════════════════════════════════════
 
 export async function getAllVideos() {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('videos')
         .select('*')
         .order('created_at', { ascending: false });
@@ -673,7 +674,7 @@ export async function getAllVideos() {
 }
 
 export async function getVideoById(id: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('videos')
         .select('*')
         .eq('id', id)
@@ -686,7 +687,7 @@ export async function getVideoById(id: string) {
 export async function createVideo(video: any) {
     const videoData = cleanDataForTable(video, 'videos');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('videos')
         .insert(videoData)
         .select()
@@ -699,7 +700,7 @@ export async function createVideo(video: any) {
 export async function updateVideo(id: string, updates: any) {
     const updateData = cleanDataForTable(updates, 'videos');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('videos')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -711,7 +712,7 @@ export async function updateVideo(id: string, updates: any) {
 }
 
 export async function deleteVideo(id: string) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('videos')
         .delete()
         .eq('id', id);

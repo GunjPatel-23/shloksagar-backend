@@ -1,4 +1,5 @@
-import { supabase } from './supabase.service';
+import { supabasePublic } from '../config/supabasePublic';
+import { supabaseAdmin } from '../config/supabaseAdmin';
 import crypto from 'crypto';
 
 // Generate session ID from IP and user agent
@@ -20,7 +21,7 @@ export function hashIP(ip: string): string {
 export async function trackSiteVisit(sessionId: string, userAgent?: string, ip?: string) {
     // Check if session already visited today
     const today = new Date().toISOString().split('T')[0];
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
         .from('site_visits')
         .select('id')
         .eq('session_id', sessionId)
@@ -31,7 +32,7 @@ export async function trackSiteVisit(sessionId: string, userAgent?: string, ip?:
 
     const ipHash = ip ? hashIP(ip) : null;
 
-    await supabase.from('site_visits').insert({
+    await supabaseAdmin.from('site_visits').insert({
         session_id: sessionId,
         user_agent: userAgent,
         ip_hash: ipHash
@@ -45,7 +46,7 @@ export async function trackPageView(
     pageTitle?: string,
     referrer?: string
 ) {
-    await supabase.from('page_views').insert({
+    await supabaseAdmin.from('page_views').insert({
         session_id: sessionId,
         path,
         page_title: pageTitle,
@@ -55,7 +56,7 @@ export async function trackPageView(
 
 // Track category interest
 export async function trackCategoryInterest(sessionId: string, categoryId: string) {
-    await supabase.from('category_interest').insert({
+    await supabaseAdmin.from('category_interest').insert({
         session_id: sessionId,
         category_id: categoryId
     });
@@ -63,7 +64,7 @@ export async function trackCategoryInterest(sessionId: string, categoryId: strin
 
 // Track content type interest
 export async function trackContentTypeInterest(sessionId: string, contentType: string) {
-    await supabase.from('content_type_interest').insert({
+    await supabaseAdmin.from('content_type_interest').insert({
         session_id: sessionId,
         content_type: contentType
     });
@@ -71,7 +72,7 @@ export async function trackContentTypeInterest(sessionId: string, contentType: s
 
 // Track language preference
 export async function trackLanguagePreference(sessionId: string, language: string) {
-    await supabase.from('language_preference').insert({
+    await supabaseAdmin.from('language_preference').insert({
         session_id: sessionId,
         language
     });
@@ -84,7 +85,7 @@ export async function trackDownload(
     resourceType: 'wallpaper' | 'video',
     resourceId: string
 ) {
-    await supabase.from('download_events').insert({
+    await supabaseAdmin.from('download_events').insert({
         user_id: userId,
         session_id: sessionId,
         resource_type: resourceType,
@@ -99,7 +100,7 @@ export async function trackVideoPlay(
     durationSeconds?: number,
     completed?: boolean
 ) {
-    await supabase.from('video_play_events').insert({
+    await supabaseAdmin.from('video_play_events').insert({
         session_id: sessionId,
         video_id: videoId,
         play_duration_seconds: durationSeconds,
@@ -152,7 +153,7 @@ export function getDateRange(filter: string): { startDate: Date; endDate: Date }
 
 // Get site visits stats
 export async function getSiteVisitsStats(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_site_visits_stats', {
+    const { data, error } = await supabaseAdmin.rpc('get_site_visits_stats', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -163,7 +164,7 @@ export async function getSiteVisitsStats(startDate: Date, endDate: Date) {
 
 // Get top pages
 export async function getTopPages(startDate: Date, endDate: Date, limit = 10) {
-    const { data, error } = await supabase.rpc('get_top_pages', {
+    const { data, error } = await supabaseAdmin.rpc('get_top_pages', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         limit_count: limit
@@ -175,7 +176,7 @@ export async function getTopPages(startDate: Date, endDate: Date, limit = 10) {
 
 // Get category interest stats
 export async function getCategoryInterestStats(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_category_interest_stats', {
+    const { data, error } = await supabaseAdmin.rpc('get_category_interest_stats', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -186,7 +187,7 @@ export async function getCategoryInterestStats(startDate: Date, endDate: Date) {
 
 // Get content type stats
 export async function getContentTypeStats(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_content_type_stats', {
+    const { data, error } = await supabaseAdmin.rpc('get_content_type_stats', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -197,7 +198,7 @@ export async function getContentTypeStats(startDate: Date, endDate: Date) {
 
 // Get language stats
 export async function getLanguageStats(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_language_stats', {
+    const { data, error } = await supabaseAdmin.rpc('get_language_stats', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -208,7 +209,7 @@ export async function getLanguageStats(startDate: Date, endDate: Date) {
 
 // Get video play stats
 export async function getVideoPlayStats(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_video_play_stats', {
+    const { data, error } = await supabaseAdmin.rpc('get_video_play_stats', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -219,7 +220,7 @@ export async function getVideoPlayStats(startDate: Date, endDate: Date) {
 
 // Get top videos
 export async function getTopVideos(startDate: Date, endDate: Date, limit = 10) {
-    const { data, error } = await supabase.rpc('get_top_videos', {
+    const { data, error } = await supabaseAdmin.rpc('get_top_videos', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         limit_count: limit
@@ -231,7 +232,7 @@ export async function getTopVideos(startDate: Date, endDate: Date, limit = 10) {
 
 // Get hourly traffic distribution
 export async function getHourlyTraffic(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_hourly_traffic', {
+    const { data, error } = await supabaseAdmin.rpc('get_hourly_traffic', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -242,7 +243,7 @@ export async function getHourlyTraffic(startDate: Date, endDate: Date) {
 
 // Get device stats
 export async function getUserAgentStats(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_user_agent_stats', {
+    const { data, error } = await supabaseAdmin.rpc('get_user_agent_stats', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -292,7 +293,7 @@ export async function getDashboardAnalytics(filter: string, customStart?: Date, 
 
 // Get download stats
 export async function getDownloadStats(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('download_events')
         .select('resource_type, resource_id, created_at')
         .gte('created_at', startDate.toISOString())

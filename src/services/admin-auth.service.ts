@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { supabase } from './supabase.service';
+import { supabaseAdmin } from '../config/supabaseAdmin';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const SALT_ROUNDS = 10;
@@ -22,7 +22,7 @@ interface AdminAuthResponse {
 export class AdminAuthService {
     // Login admin
     async loginAdmin(email: string, password: string): Promise<AdminAuthResponse> {
-        const { data: admins } = await supabase
+        const { data: admins } = await supabaseAdmin
             .from('admins')
             .select('*')
             .eq('email', email.toLowerCase())
@@ -40,7 +40,7 @@ export class AdminAuthService {
         }
 
         // Update last login
-        await supabase
+        await supabaseAdmin
             .from('admins')
             .update({ last_login: new Date().toISOString() })
             .eq('id', admin.id);
@@ -77,7 +77,7 @@ export class AdminAuthService {
         createdByAdminId: string
     ): Promise<Admin> {
         // Check if email already exists
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseAdmin
             .from('admins')
             .select('id')
             .eq('email', email.toLowerCase())
@@ -91,7 +91,7 @@ export class AdminAuthService {
         const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
         // Create admin
-        const { data: newAdmin, error } = await supabase
+        const { data: newAdmin, error } = await supabaseAdmin
             .from('admins')
             .insert({
                 name,
@@ -111,7 +111,7 @@ export class AdminAuthService {
 
     // Get all admins (for admin management)
     async getAllAdmins(): Promise<Admin[]> {
-        const { data } = await supabase
+        const { data } = await supabaseAdmin
             .from('admins')
             .select('id, name, email, is_active, created_at, last_login')
             .order('created_at', { ascending: false });
@@ -138,7 +138,7 @@ export class AdminAuthService {
     // Update password
     async updatePassword(adminId: string, newPassword: string): Promise<void> {
         const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
-        await supabase
+        await supabaseAdmin
             .from('admins')
             .update({
                 password_hash: passwordHash,
@@ -149,7 +149,7 @@ export class AdminAuthService {
 
     // Deactivate admin
     async deactivateAdmin(adminId: string): Promise<void> {
-        await supabase
+        await supabaseAdmin
             .from('admins')
             .update({
                 is_active: false,
@@ -160,7 +160,7 @@ export class AdminAuthService {
 
     // Activate admin
     async activateAdmin(adminId: string): Promise<void> {
-        await supabase
+        await supabaseAdmin
             .from('admins')
             .update({
                 is_active: true,

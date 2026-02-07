@@ -1,4 +1,4 @@
-import { supabase } from './supabase.service';
+import { supabaseAdmin } from '../config/supabaseAdmin';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
@@ -52,7 +52,7 @@ export async function createOrUpdateGoogleUser(
     name: string,
     googleId: string
 ): Promise<User> {
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('email', email)
@@ -61,7 +61,7 @@ export async function createOrUpdateGoogleUser(
     if (existingUser) {
         // Update google_id if not set
         if (!existingUser.google_id) {
-            const { data: updated } = await supabase
+            const { data: updated } = await supabaseAdmin
                 .from('users')
                 .update({
                     google_id: googleId,
@@ -75,7 +75,7 @@ export async function createOrUpdateGoogleUser(
         }
 
         // Update last login
-        await supabase
+        await supabaseAdmin
             .from('users')
             .update({ last_login: new Date().toISOString() })
             .eq('id', existingUser.id);
@@ -84,7 +84,7 @@ export async function createOrUpdateGoogleUser(
     }
 
     // Create new user
-    const { data: newUser, error } = await supabase
+    const { data: newUser, error } = await supabaseAdmin
         .from('users')
         .insert({
             email,
@@ -107,7 +107,7 @@ export async function sendOTPEmail(email: string): Promise<boolean> {
     expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 min expiry
 
     // Store OTP in database
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('otp_codes')
         .insert({
             email,
@@ -167,7 +167,7 @@ export async function sendOTPEmail(email: string): Promise<boolean> {
 // Verify OTP and create/login user
 export async function verifyOTPAndLogin(email: string, code: string, name?: string): Promise<User | null> {
     // Find valid OTP
-    const { data: otpRecord } = await supabase
+    const { data: otpRecord } = await supabaseAdmin
         .from('otp_codes')
         .select('*')
         .eq('email', email)
@@ -183,13 +183,13 @@ export async function verifyOTPAndLogin(email: string, code: string, name?: stri
     }
 
     // Mark OTP as used
-    await supabase
+    await supabaseAdmin
         .from('otp_codes')
         .update({ used: true })
         .eq('id', otpRecord.id);
 
     // Find or create user
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('email', email)
@@ -197,7 +197,7 @@ export async function verifyOTPAndLogin(email: string, code: string, name?: stri
 
     if (existingUser) {
         // Update last login and name if provided
-        await supabase
+        await supabaseAdmin
             .from('users')
             .update({
                 last_login: new Date().toISOString(),
@@ -208,7 +208,7 @@ export async function verifyOTPAndLogin(email: string, code: string, name?: stri
     }
 
     // Create new user
-    const { data: newUser, error } = await supabase
+    const { data: newUser, error } = await supabaseAdmin
         .from('users')
         .insert({
             email,
@@ -246,7 +246,7 @@ export function verifyToken(token: string): { userId: string; email: string } | 
 
 // Get user by ID
 export async function getUserById(userId: string): Promise<User | null> {
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('id', userId)
@@ -280,7 +280,7 @@ export async function createOrUpdateFirebaseGoogleUser(
     const googleId = decodedToken.uid;
     const profilePicture = decodedToken.picture;
 
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('email', email)
@@ -288,7 +288,7 @@ export async function createOrUpdateFirebaseGoogleUser(
 
     if (existingUser) {
         // Update google_id and profile picture if not set
-        const { data: updated } = await supabase
+        const { data: updated } = await supabaseAdmin
             .from('users')
             .update({
                 google_id: googleId,
@@ -303,7 +303,7 @@ export async function createOrUpdateFirebaseGoogleUser(
     }
 
     // Create new user
-    const { data: newUser, error } = await supabase
+    const { data: newUser, error } = await supabaseAdmin
         .from('users')
         .insert({
             email,
@@ -330,7 +330,7 @@ export async function createOrUpdateFirebasePhoneUser(
     const phoneNumber = decodedToken.phone_number!;
     const uid = decodedToken.uid;
 
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('phone', phoneNumber)
@@ -338,7 +338,7 @@ export async function createOrUpdateFirebasePhoneUser(
 
     if (existingUser) {
         // Update last login
-        const { data: updated } = await supabase
+        const { data: updated } = await supabaseAdmin
             .from('users')
             .update({
                 name: name || existingUser.name,
@@ -351,7 +351,7 @@ export async function createOrUpdateFirebasePhoneUser(
     }
 
     // Create new user
-    const { data: newUser, error } = await supabase
+    const { data: newUser, error } = await supabaseAdmin
         .from('users')
         .insert({
             phone: phoneNumber,

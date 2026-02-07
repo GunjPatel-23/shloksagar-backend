@@ -1,4 +1,5 @@
-import { supabase } from './supabase.service';
+import { supabasePublic } from '../config/supabasePublic';
+import { supabaseAdmin } from '../config/supabaseAdmin';
 
 interface Ad {
     id: string;
@@ -13,7 +14,7 @@ interface Ad {
 
 // Get weighted ad for display (uses database function)
 export async function getWeightedAd(): Promise<Ad | null> {
-    const { data, error } = await supabase.rpc('get_weighted_ad');
+    const { data, error } = await supabasePublic.rpc('get_weighted_ad');
 
     if (error || !data || data.length === 0) {
         return null;
@@ -29,14 +30,14 @@ export async function trackAdImpression(
     pagePath: string
 ): Promise<void> {
     // Insert impression record
-    await supabase.from('ad_impressions').insert({
+    await supabaseAdmin.from('ad_impressions').insert({
         ad_id: adId,
         session_id: sessionId,
         page_path: pagePath
     });
 
     // Increment used_impressions counter
-    await supabase.rpc('increment_ad_impression', { ad_uuid: adId });
+    await supabaseAdmin.rpc('increment_ad_impression', { ad_uuid: adId });
 }
 
 // Track ad click
@@ -45,7 +46,7 @@ export async function trackAdClick(
     sessionId: string,
     pagePath: string
 ): Promise<void> {
-    await supabase.from('ad_clicks').insert({
+    await supabaseAdmin.from('ad_clicks').insert({
         ad_id: adId,
         session_id: sessionId,
         page_path: pagePath
@@ -54,7 +55,7 @@ export async function trackAdClick(
 
 // Get all ad packages
 export async function getAdPackages() {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublic
         .from('ad_packages')
         .select('*')
         .order('impressions', { ascending: true });
@@ -71,7 +72,7 @@ export async function createAd(
     packageId: string
 ) {
     // Get package details
-    const { data: pkg, error: pkgError } = await supabase
+    const { data: pkg, error: pkgError } = await supabaseAdmin
         .from('ad_packages')
         .select('impressions')
         .eq('id', packageId)
@@ -79,7 +80,7 @@ export async function createAd(
 
     if (pkgError || !pkg) throw new Error('Invalid package');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ads')
         .insert({
             advertiser_name: advertiserName,
@@ -99,7 +100,7 @@ export async function createAd(
 
 // Get all ads (admin view)
 export async function getAllAds() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ads')
         .select(`
             *,
@@ -117,7 +118,7 @@ export async function getAllAds() {
 
 // Get ad by ID
 export async function getAdById(adId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ads')
         .select(`
             *,
@@ -136,7 +137,7 @@ export async function getAdById(adId: string) {
 
 // Update ad status (pause/resume)
 export async function updateAdStatus(adId: string, status: 'active' | 'paused') {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ads')
         .update({ status, updated_at: new Date().toISOString() })
         .eq('id', adId)
@@ -149,7 +150,7 @@ export async function updateAdStatus(adId: string, status: 'active' | 'paused') 
 
 // Get ad performance stats
 export async function getAdPerformance(startDate: Date, endDate: Date) {
-    const { data, error } = await supabase.rpc('get_ad_performance', {
+    const { data, error } = await supabaseAdmin.rpc('get_ad_performance', {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString()
     });
@@ -164,7 +165,7 @@ export async function getAdImpressionsOverTime(
     startDate: Date,
     endDate: Date
 ) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ad_impressions')
         .select('created_at')
         .eq('ad_id', adId)
@@ -190,7 +191,7 @@ export async function getAdPageDistribution(
     startDate: Date,
     endDate: Date
 ) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('ad_impressions')
         .select('page_path')
         .eq('ad_id', adId)
@@ -213,7 +214,7 @@ export async function getAdPageDistribution(
 
 // Get total ad impressions delivered (for dashboard)
 export async function getTotalAdImpressions(startDate: Date, endDate: Date): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await supabaseAdmin
         .from('ad_impressions')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startDate.toISOString())
@@ -225,7 +226,7 @@ export async function getTotalAdImpressions(startDate: Date, endDate: Date): Pro
 
 // Get active ads count
 export async function getActiveAdsCount(): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await supabaseAdmin
         .from('ads')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active')
@@ -237,7 +238,7 @@ export async function getActiveAdsCount(): Promise<number> {
 
 // Delete ad (admin only, soft delete by marking completed)
 export async function deleteAd(adId: string) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('ads')
         .update({ status: 'completed' })
         .eq('id', adId);

@@ -1,18 +1,6 @@
-import { v2 as cloudinary } from 'cloudinary';
-import { env } from '../config/env';
-
-cloudinary.config({
-    cloud_name: env.CLOUDINARY_CLOUD_NAME,
-    api_key: env.CLOUDINARY_API_KEY,
-    api_secret: env.CLOUDINARY_API_SECRET,
-    secure: true,
-});
+import { cloudinary } from '../config/cloudinary';
 
 export const cloudinaryService = {
-    /**
-     * Generates a signed URL or simply returns the public ID based URL.
-     * Since we store URLs in DB, this might just be a helper to upload or transform.
-     */
     getOptimizedUrl: (publicId: string, options: { width?: number; height?: number; format?: string } = {}) => {
         return cloudinary.url(publicId, {
             fetch_format: options.format || 'auto',
@@ -23,7 +11,6 @@ export const cloudinaryService = {
         });
     },
 
-    // Admin only: Upload content
     uploadMedia: async (filePath: string, folder: string = 'shloksagar') => {
         try {
             const result = await cloudinary.uploader.upload(filePath, {
@@ -42,6 +29,7 @@ export const cloudinaryService = {
     },
 
     getSignature: (params: Record<string, any>) => {
-        return cloudinary.utils.api_sign_request(params, env.CLOUDINARY_API_SECRET);
+        const apiSecret = process.env.CLOUDINARY_API_SECRET!;
+        return cloudinary.utils.api_sign_request(params, apiSecret);
     }
 };
