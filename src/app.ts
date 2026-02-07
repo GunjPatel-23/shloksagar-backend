@@ -23,6 +23,16 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 
+// Log incoming requests (useful for debugging deployed routing)
+app.use((req, res, next) => {
+    console.log('[req] method=%s url=%s host=%s headers=%j', req.method, req.originalUrl, req.headers.host, {
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        'x-vercel-deployment': req.headers['x-vercel-deployment'] || null,
+    });
+    next();
+});
+
 // Strict CORS Policy
 const allowedOrigins = [
     env.FRONTEND_URL,
@@ -67,10 +77,17 @@ app.use(cors({
 // Apply rate limiter after CORS so preflight responses include CORS headers
 app.use(limiter); // Apply globally
 
-// Routes
-app.use('/api/v1/public', publicRoutes);
-app.use('/api/v1/admin/auth', adminAuthRoutes);
-app.use('/api/v1/admin', adminRoutes);
+// Routes: mount under several common prefixes so serverless routing mismatches
+// (some platforms strip parts of the path). This makes the backend more resilient
+// to differences between local and deployed environments.
+const publicPrefixes = ['/api/v1/public', '/v1/public', '/public', '/api/public'];
+publicPrefixes.forEach((p) => app.use(p, publicRoutes));
+
+const adminAuthPrefixes = ['/api/v1/admin/auth', '/v1/admin/auth', '/admin/auth', '/api/admin/auth'];
+adminAuthPrefixes.forEach((p) => app.use(p, adminAuthRoutes));
+
+const adminPrefixes = ['/api/v1/admin', '/v1/admin', '/admin', '/api/admin'];
+adminPrefixes.forEach((p) => app.use(p, adminRoutes));
 
 // Google OAuth (root-level routes for popup authentication)
 app.get('/auth/google', (req, res) => {
