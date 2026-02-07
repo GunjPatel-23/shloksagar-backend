@@ -1,0 +1,149 @@
+-- Seed sample analytics data for testing the dashboard
+
+-- Generate some site visits for the last 7 days
+DO $$
+DECLARE
+    day_offset INTEGER;
+    visit_date TIMESTAMP WITH TIME ZONE;
+    session_count INTEGER;
+    i INTEGER;
+BEGIN
+    FOR day_offset IN 0..6 LOOP
+        visit_date := NOW() - (day_offset || ' days')::INTERVAL;
+        session_count := 10 + FLOOR(RANDOM() * 20); -- 10-30 visits per day
+        
+        FOR i IN 1..session_count LOOP
+            INSERT INTO site_visits (session_id, user_agent, created_at)
+            VALUES (
+                'session_' || day_offset || '_' || i,
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+                visit_date + (RANDOM() * INTERVAL '23 hours')
+            );
+        END LOOP;
+    END LOOP;
+END $$;
+
+-- Generate page views for each session
+DO $$
+DECLARE
+    visit_record RECORD;
+    page_count INTEGER;
+    i INTEGER;
+    page_paths TEXT[] := ARRAY[
+        '/bhajans',
+        '/aarti',
+        '/chalisa',
+        '/stotra',
+        '/gita-sandesh',
+        '/quotes',
+        '/wallpapers',
+        '/videos',
+        '/about',
+        '/contact'
+    ];
+    page_titles TEXT[] := ARRAY[
+        'Bhajans - Devotional Songs',
+        'Aarti Collection',
+        'Chalisa Library',
+        'Stotra & Path',
+        'Gita Sandesh',
+        'Spiritual Quotes',
+        'HD Wallpapers',
+        'Video Gallery',
+        'About Us',
+        'Contact Us'
+    ];
+BEGIN
+    FOR visit_record IN SELECT session_id, created_at FROM site_visits LOOP
+        page_count := 2 + FLOOR(RANDOM() * 5); -- 2-6 page views per session
+        
+        FOR i IN 1..page_count LOOP
+            DECLARE
+                path_index INTEGER;
+            BEGIN
+                path_index := 1 + FLOOR(RANDOM() * array_length(page_paths, 1));
+                
+                INSERT INTO page_views (session_id, path, page_title, created_at)
+                VALUES (
+                    visit_record.session_id,
+                    page_paths[path_index],
+                    page_titles[path_index],
+                    visit_record.created_at + (i * INTERVAL '2 minutes')
+                );
+            END;
+        END LOOP;
+    END LOOP;
+END $$;
+
+-- Generate content type interest
+DO $$
+DECLARE
+    visit_record RECORD;
+    content_types TEXT[] := ARRAY['bhajan', 'aarti', 'chalisa', 'stotra', 'gita_sandesh', 'quote', 'wallpaper', 'video'];
+    type_index INTEGER;
+BEGIN
+    FOR visit_record IN SELECT session_id, created_at FROM site_visits LOOP
+        -- Each session shows interest in 1-3 content types
+        FOR i IN 1..(1 + FLOOR(RANDOM() * 3)) LOOP
+            type_index := 1 + FLOOR(RANDOM() * array_length(content_types, 1));
+            
+            INSERT INTO content_type_interest (session_id, content_type, created_at)
+            VALUES (
+                visit_record.session_id,
+                content_types[type_index],
+                visit_record.created_at + (RANDOM() * INTERVAL '10 minutes')
+            )
+            ON CONFLICT DO NOTHING;
+        END LOOP;
+    END LOOP;
+END $$;
+
+-- Generate language preferences
+DO $$
+DECLARE
+    visit_record RECORD;
+    languages TEXT[] := ARRAY['hindi', 'gujarati', 'english'];
+    lang_index INTEGER;
+BEGIN
+    FOR visit_record IN SELECT session_id, created_at FROM site_visits LOOP
+        lang_index := 1 + FLOOR(RANDOM() * array_length(languages, 1));
+        
+        INSERT INTO language_preference (session_id, language, created_at)
+        VALUES (
+            visit_record.session_id,
+            languages[lang_index],
+            visit_record.created_at
+        );
+    END LOOP;
+END $$;
+
+-- Add some category interest (only if categories exist)
+DO $$
+DECLARE
+    visit_record RECORD;
+    category_record RECORD;
+BEGIN
+    FOR visit_record IN SELECT session_id, created_at FROM site_visits WHERE RANDOM() < 0.5 LOOP
+        -- Random category
+        FOR category_record IN 
+            SELECT id FROM categories 
+            ORDER BY RANDOM() 
+            LIMIT 1 + FLOOR(RANDOM() * 2)
+        LOOP
+            INSERT INTO category_interest (session_id, category_id, created_at)
+            VALUES (
+                visit_record.session_id,
+                category_record.id,
+                visit_record.created_at + (RANDOM() * INTERVAL '5 minutes')
+            );
+        END LOOP;
+    END LOOP;
+END $$;
+
+-- Verify the data
+SELECT 
+    (SELECT COUNT(*) FROM site_visits) as total_visits,
+    (SELECT COUNT(*) FROM page_views) as total_page_views,
+    (SELECT COUNT(*) FROM content_type_interest) as content_interests,
+    (SELECT COUNT(*) FROM language_preference) as language_prefs,
+    (SELECT COUNT(*) FROM category_interest) as category_interests;
