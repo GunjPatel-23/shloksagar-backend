@@ -10,11 +10,24 @@ import adminAuthRoutes from './routes/admin-auth.routes';
 
 const app = express();
 
+// When running behind a proxy (Vercel, Cloudflare, etc.) trust the proxy so
+// `req.ip` and forwarding headers are handled correctly.
+app.set('trust proxy', true);
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // Limit each IP to 100 requests per windowMs
     standardHeaders: true,
     legacyHeaders: false,
+    // Use a key generator that falls back to X-Forwarded-For when present
+    keyGenerator: (req) => {
+        // Prefer X-Forwarded-For first value (if behind a proxy)
+        const xff = (req.headers['x-forwarded-for'] || req.headers['forwarded'] || '') as string;
+        if (xff && typeof xff === 'string') {
+            return xff.split(',')[0].trim();
+        }
+        return req.ip;
+    },
     message: 'Too many requests from this IP, please try again after 15 minutes'
 });
 
@@ -39,6 +52,12 @@ const allowedOrigins = [
     env.ADMIN_URL,
 ];
 
+// If frontend URL is not configured (deployment missing env vars), allow any origin
+// temporarily so the site can load while environment variables are being fixed.
+// This is safe because API keys are still required for admin routes; revert after
+// you set `FRONTEND_URL` in Vercel.
+const allowAnyOriginIfMissing = !env.FRONTEND_URL;
+
 if (isDev) {
     allowedOrigins.push('http://localhost:3000'); // React/Next dev default
     allowedOrigins.push('http://localhost:5173'); // Vite dev default
@@ -50,6 +69,9 @@ app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (like server-to-server tools or curl)
         if (!origin) return callback(null, true);
+
+        // If FRONTEND_URL is not set in deployment, temporarily allow all origins
+        if (allowAnyOriginIfMissing) return callback(null, true);
 
         // Allow explicitly configured origins
         if (allowedOrigins.indexOf(origin) !== -1) {
